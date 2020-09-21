@@ -13,6 +13,10 @@ from machine import Pin, ADC, I2C
 from time import sleep
 from utime import localtime
 from dht import DHT22
+
+import network
+import wifi_and_ntp
+
 import urequests
 import json
 
@@ -121,7 +125,8 @@ class Box_Monitor():
 
 
 
- 
+sta_if = network.WLAN(network.STA_IF)
+
 
 boxmon = Box_Monitor()
 boxmon.init_dht(pins=PINS_DHT)  # DHT22
@@ -135,6 +140,16 @@ while True:
     #print(boxmon.measure_photo())
     #print(boxmon.measure_dhts())
     #print(boxmon.measure_va())
+    
+    # check if we have active wifi connection
+    # if not, sleep and try again
+    if not sta_if.isconnected():
+        wifi_and_ntp.startup()
+        if not sta_if.isconnected():
+            print('Wi-Fi not available. Sensor data not sent.')
+            sta_if.disconnect()  # prevent unnecessary automatic reconnect attempts  
+            sleep(DUTY_CYCLE)
+            continue
     
     # upload to cloud
     try:
