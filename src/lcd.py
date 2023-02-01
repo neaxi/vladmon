@@ -54,6 +54,13 @@ def network_status() -> str:
     return parse(msgs)
 
 
+def network_error(lcd, gfx):
+    """ clear top half of the display and show the banner there"""
+    gfx.fill_rect(0,0,128,32,0)
+    lcd.show()
+    lcd.longtext(CNFG.MSG_LCD["offline"], CNFG.LCD_MAX_CHAR, clear=False)
+
+
 def soil_humidity(data):
     msgs = ["Soil humidity"]
     msgs.append(newline())

@@ -4,7 +4,6 @@ from machine import Pin, I2C, ADC, SPI
 
 import uasyncio
 
-import wifi_and_ntp
 import urequests
 
 import log_setup
@@ -18,6 +17,9 @@ from blynk import BlApi
 
 logger = log_setup.getLogger("main")
 
+gc.enable()  # to make sure auto garbage collect is ON
+gc.threshold(61000)  # if the app allocates more, trigger GC
+
 
 def mem_cleanup():
     start = gc.mem_free()
@@ -25,27 +27,6 @@ def mem_cleanup():
     gc.collect()
     logger.debug(f"Freed {free - start} bytes of RAM. Current: {free}")
     del start, free
-
-
-def blynk_update(pin, data):
-    """send request, if failed, reconnect network,
-    then close connection"""
-    try:
-        url = CNFG.BLYNK_URL.format(pin=pin, value=data)
-        logger.debug(url)
-        resp = urequests.get(url)
-        if resp.status_code != 200:
-            logger.warning(f"HTTP {resp.status_code} - {resp.text}")
-        data = resp.__dict__  # save the data, so we can close the connection
-        resp.close()
-        return data
-    except OSError as exc:
-        if "EHOSTUNREACH" in exc:
-            logger.warning("Network unreachable, reconnecting...")
-            wifi_and_ntp.startup()
-            return None
-        else:
-            raise OSError(exc)
 
 
 class Orchestrator:
@@ -103,9 +84,15 @@ class Orchestrator:
                 logger.debug(f"LCD msg: {msg}")
                 try:
                     self.hw["lcd"].longtext(msg, CNFG.LCD_MAX_CHAR)
+                    await uasyncio.sleep(CNFG.T_LCD_FRAME - 1)
+                    # show "offline" msg for 1 sec
+                    if not self.hw["wifi"].sta_if.isconnected():
+                        lcd.network_error(self.hw["lcd"], self.hw["gfx"])
+                    await uasyncio.sleep(1)
+
                 except (OSError, AttributeError):
                     logger.error("Failed to display LCD text")
-                await uasyncio.sleep(CNFG.T_LCD_FRAME)
+                    await uasyncio.sleep(CNFG.T_LCD_FRAME)
 
     async def cr_relays(self):
         while True:
@@ -179,7 +166,13 @@ class Orchestrator:
             mem_cleanup()
             self.cloud.update_streams(self.hw, self.data)
             mem_cleanup()
-            self.cloud.fetch_pump_setting(self.hw)
+            if self.hw["wifi"].sta_if.isconnected():
+                self.cloud.fetch_pump_setting(self.hw)
+                # resync time if network works and it did not work before
+                if not self.hw["ntp"].synced:
+                    self.hw["ntp"].sync_ntp_time(self.hw["wifi"])
+            else:
+                logger.warn("Pump setting fetch not attempted.")
             await uasyncio.sleep(CNFG.T_NETWORK_UPDATE)
 
     def start(self):

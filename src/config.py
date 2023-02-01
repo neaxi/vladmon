@@ -1,12 +1,16 @@
 from array import array
 
+LOG_LEVEL = 10  # 10 = DEBUG; 20 = INFO
+
 # ----------------------------------------
-#                 GENERAL
+#                 WIFI / NETWORK
 # ----------------------------------------
 NETWORKS = {"IoT": "***REMOVED***"}
-
-
-LOG_LEVEL = 10  # 10 = DEBUG; 20 = INFO
+HTTP_TIMEOUT = 10  # sec
+DHCP_HOSTNAME = "boxmon"
+TIMEZONE_UTC_OFFSET = 1  #  1 = Central Europe / Prague
+WIFI_CONNECT_TIMEOUT = 10
+RECONN_ATTEMPT = 5  # how many times wifi attempts to reconnect before complete restart
 
 # ----------------------------------------
 #                 TRIGGERS
@@ -68,7 +72,7 @@ T_BUS_DELAY = 0.2  # used for troubleshooting to slow down read operations from 
 AUTOSTART = 32  # stops execution after init if grounded
 
 # DS18B - 1 pin .. mulitple sensors on a bus
-DS18_PIN = 2
+DS18_PIN = 4
 
 
 # relay - 4 pins
@@ -128,4 +132,7 @@ MSG = {
 
 MSG_LCD = {
     "init": lambda dev, status: f"{'Initing':<16}  {dev:<14} ... {status}",
+    "conn": lambda ssid, chars: f'{"SSID":<{chars}}{ssid:<{chars}}',
+    # "offline": f"{'!'*16}!{' ' * 14}!!{'NETWORK':^14}!!{'OFFLINE':^14}!!{' ' * 14}!{'!'*16}",
+    "offline": f"!!{'NETWORK':^12}!!!!{'OFFLINE':^12}!!{'-' * 16}",
 }

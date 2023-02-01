@@ -9,7 +9,10 @@ from sht3x import SHT31
 from ssd1306 import SSD1306_I2C
 from bh1750 import BH1750
 
-# from oled import GFX # prevent unnecessary import
+import wifi_and_ntp
+
+from oled import GFX
+
 # from ina3221 import INA3221
 
 import config as CNFG
@@ -18,6 +21,49 @@ import log_setup
 logger = log_setup.getLogger("hw_init")
 
 Periph = namedtuple("Periph", ["id", "func", "friendly"])
+
+
+class RelayControlled:
+    def __init__(self, name, pin):
+        self.name = name
+        self.switch = pin
+        self.enabled = False
+
+    def on(self):
+        logger.info(f"Turned on - {self.name}")
+        self.enabled = True
+        self.switch.value(0)
+
+    def off(self):
+        logger.info(f"Turned off - {self.name}")
+        self.enabled = False
+        self.switch.value(1)
+
+
+class Pump(RelayControlled):
+    def __init__(self, *args, **kwargs):
+        super(Pump, self).__init__(*args, **kwargs)
+        self.level_sensor = None
+        self.cloud_allow = True
+
+    def low_level(self):
+        return self.level_sensor.value() == 1
+
+    def on(self):
+        if not self.low_level():
+            super(Pump, self).on()
+        else:
+            logger.error("water too low; pump remains off")
+
+
+class Fan(RelayControlled):
+    def __init__(self, *args, **kwargs):
+        super(Fan, self).__init__(*args, **kwargs)
+
+
+class Light(RelayControlled):
+    def __init__(self, *args, **kwargs):
+        super(Light, self).__init__(*args, **kwargs)
 
 
 def setup_i2c():
@@ -44,7 +90,11 @@ def setup_lcd(i2c):
     lcd.text("INIT", 40, 40, 1)
     lcd.show()
     return lcd
-    # GFX(CNFG.LCD_W, CNFG.LCD_H, display.pixel)
+
+
+def setup_gfx(display):
+    gfx = GFX(CNFG.LCD_W, CNFG.LCD_H, display.pixel)
+    return gfx
 
 
 def setup_bh1750(i2c):
@@ -149,6 +199,8 @@ class Initializer:
                 if device.id == "lcd":
                     bus = self.devices["i2c_secondary"]
                 self.devices[device.id] = self.init_periph(device, i2c=bus)
+                if device.id == "lcd":
+                    self.devices["gfx"] = setup_gfx(self.devices["lcd"])
             else:
                 self.devices[device.id] = None
                 logger.warn(
@@ -161,6 +213,14 @@ class Initializer:
 
         for device in DEV_REL:
             self.devices[device.id] = self.init_periph(device, self.devices["relay"])
+
+        # init wifi and ntp
+        logger.debug("Connecting wifi")
+        self.devices["wifi"] = wifi_and_ntp.WifiScifi()
+        self.devices["wifi"].attempt_connection(lcd=self.devices["lcd"])
+
+        self.devices["ntp"] = wifi_and_ntp.NtpSync()
+        self.devices["ntp"].sync_ntp_time(self.devices["wifi"])
 
         sleep(2)
         del i2c_addr
@@ -211,49 +271,6 @@ class Initializer:
         except AttributeError as exc:
             logger.error(f"LCD issues - {exc}")
         del msg, status
-
-
-class RelayControlled:
-    def __init__(self, name, pin):
-        self.name = name
-        self.switch = pin
-        self.enabled = False
-
-    def on(self):
-        logger.info(f"Turned on - {self.name}")
-        self.enabled = True
-        self.switch.value(0)
-
-    def off(self):
-        logger.info(f"Turned off - {self.name}")
-        self.enabled = False
-        self.switch.value(1)
-
-
-class Pump(RelayControlled):
-    def __init__(self, *args, **kwargs):
-        super(Pump, self).__init__(*args, **kwargs)
-        self.level_sensor = None
-        self.cloud_allow = True
-
-    def low_level(self):
-        return self.level_sensor.value() == 1
-
-    def on(self):
-        if not self.low_level():
-            super(Pump, self).on()
-        else:
-            logger.error("water too low; pump remains off")
-
-
-class Fan(RelayControlled):
-    def __init__(self, *args, **kwargs):
-        super(Fan, self).__init__(*args, **kwargs)
-
-
-class Light(RelayControlled):
-    def __init__(self, *args, **kwargs):
-        super(Light, self).__init__(*args, **kwargs)
 
 
 if __name__ == "__main__":

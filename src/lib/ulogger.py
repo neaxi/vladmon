@@ -10,7 +10,12 @@ try:
 except:
     const = lambda x: x  # for debug
 
-from io import TextIOWrapper
+try:
+    from io import TextIOWrapper
+except ImportError:
+    # unstable v1.19.1-837-g67fac4ebc on 2023-01-24; did not have TextIOWrapper
+    # no idea if this workaround would work
+    from io import StringIO as TextIOWrapper
 
 __version__ = "v1.2"
 

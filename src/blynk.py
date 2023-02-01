@@ -78,9 +78,9 @@ class BlApi:
 
         try:
             if push_data:
-                resp = urequests.get(url, timeout=5)
+                resp = urequests.get(url, timeout=CNFG.HTTP_TIMEOUT)
             else:
-                resp = urequests.get(url, json=True, timeout=5)
+                resp = urequests.get(url, json=True, timeout=CNFG.HTTP_TIMEOUT)
 
             if push_data and resp.status_code == 200:
                 logger.info("API updated")
@@ -101,7 +101,7 @@ class BlApi:
             # try again - once!
             if not reattempt:
                 logger.warn("Reattempting Wi-Fi connection and to cloud comm")
-                wifi_and_ntp.startup(CNFG.NETWORKS)
+                kw["hw"]["wifi"].attempt_connection(lcd=kw["hw"]["lcd"], reset=True)
                 self.cloud_comm(payload, reattempt=True, push_data=push_data, **kw)
 
         except MemoryError as exc:
@@ -127,7 +127,7 @@ class BlApi:
         old_state = hw[CNFG.R_ID_PUMP].cloud_allow
         # JSON has to be set to True, otherwise socket read failes to detect 0
         # "0"/"1" is a JSON payload also per wireshark
-        state = self.cloud_comm(f"V{CNFG.BL_VPIN['EN_PUMP']}", api_func="get")
+        state = self.cloud_comm(f"V{CNFG.BL_VPIN['EN_PUMP']}", api_func="get", hw=hw)
         try:
             state = int(state)
             if state == 1:
@@ -154,5 +154,5 @@ class BlApi:
         payload = "&".join([f"V{meas[0]}={meas[1]}" for meas in payload])
 
         logger.info("Sending data to cloud")
-        self.cloud_comm(payload, push_data=True)
+        self.cloud_comm(payload, push_data=True, hw=hw)
         del payload

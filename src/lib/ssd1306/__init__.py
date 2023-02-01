@@ -115,10 +115,11 @@ class SSD1306:
         self.framebuf.text(string, x, y, col)
         self.show()
 
-    def longtext(self, message, limit):
+    def longtext(self, message, limit, clear=True):
         y = 0
         chars = 16
-        self.fill(0)
+        if clear:
+            self.fill(0)
         if len(message) // chars > 0:
             for i in range(0, len(message) // chars + 1):
                 # if leftover message is shorter than 16 chars
