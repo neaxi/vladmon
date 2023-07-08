@@ -20,10 +20,10 @@ def getLogger(name=None, level=None):
     return logger
 
 
-def test():
-    log = getLogger()
-    log.debug("DEBUG")
-    log.info("INFO")
-    log.warn("warning")
-    log.error("error")
-    log.critical("exception")
+# def test():
+#     log = getLogger()
+#     log.debug("DEBUG")
+#     log.info("INFO")
+#     log.warn("warning")
+#     log.error("error")
+#     log.critical("exception")

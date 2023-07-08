@@ -130,6 +130,7 @@ class SSD1306:
                     # else limit it
                     m = message[i * limit : i * limit + limit]
                 self.text(m, 0, y, 1)
+                del m
                 y += 10  # newline
         else:
             self.text(message, 0, y, 1)
@@ -171,41 +172,3 @@ class SSD1306_I2C(SSD1306):
 
     def poweron(self):
         pass
-
-
-class SSD1306_SPI(SSD1306):
-    def __init__(self, width, height, spi, dc, res, cs, external_vcc=False):
-        self.rate = 10 * 1024 * 1024
-        dc.init(dc.OUT, value=0)
-        res.init(res.OUT, value=0)
-        cs.init(cs.OUT, value=1)
-        self.spi = spi
-        self.dc = dc
-        self.res = res
-        self.cs = cs
-        self.buffer = bytearray((height // 8) * width)
-        self.framebuf = framebuf.FrameBuffer1(self.buffer, width, height)
-        super().__init__(width, height, external_vcc)
-
-    def write_cmd(self, cmd):
-        self.spi.init(baudrate=self.rate, polarity=0, phase=0)
-        self.cs.high()
-        self.dc.low()
-        self.cs.low()
-        self.spi.write(bytearray([cmd]))
-        self.cs.high()
-
-    def write_framebuf(self):
-        self.spi.init(baudrate=self.rate, polarity=0, phase=0)
-        self.cs.high()
-        self.dc.high()
-        self.cs.low()
-        self.spi.write(self.buffer)
-        self.cs.high()
-
-    def poweron(self):
-        self.res.high()
-        time.sleep_ms(1)
-        self.res.low()
-        time.sleep_ms(10)
-        self.res.high()

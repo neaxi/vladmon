@@ -23,18 +23,14 @@
 #
 import utime as time
 
-_REGISTER_MASK = const(0x03)
 _REGISTER_CONVERT = const(0x00)
 _REGISTER_CONFIG = const(0x01)
 _REGISTER_LOWTHRESH = const(0x02)
 _REGISTER_HITHRESH = const(0x03)
 
-_OS_MASK = const(0x8000)
 _OS_SINGLE = const(0x8000)  # Write: Set to start a single-conversion
-_OS_BUSY = const(0x0000)  # Read: Bit=0 when conversion is in progress
 _OS_NOTBUSY = const(0x8000)  # Read: Bit=1 when no conversion is in progress
 
-_MUX_MASK = const(0x7000)
 _MUX_DIFF_0_1 = const(0x0000)  # Differential P  =  AIN0, N  =  AIN1 (default)
 _MUX_DIFF_0_3 = const(0x1000)  # Differential P  =  AIN0, N  =  AIN3
 _MUX_DIFF_1_3 = const(0x2000)  # Differential P  =  AIN1, N  =  AIN3
@@ -44,7 +40,6 @@ _MUX_SINGLE_1 = const(0x5000)  # Single-ended AIN1
 _MUX_SINGLE_2 = const(0x6000)  # Single-ended AIN2
 _MUX_SINGLE_3 = const(0x7000)  # Single-ended AIN3
 
-_PGA_MASK = const(0x0E00)
 _PGA_6_144V = const(0x0000)  # +/-6.144V range  =  Gain 2/3
 _PGA_4_096V = const(0x0200)  # +/-4.096V range  =  Gain 1
 _PGA_2_048V = const(0x0400)  # +/-2.048V range  =  Gain 2 (default)
@@ -52,11 +47,9 @@ _PGA_1_024V = const(0x0600)  # +/-1.024V range  =  Gain 4
 _PGA_0_512V = const(0x0800)  # +/-0.512V range  =  Gain 8
 _PGA_0_256V = const(0x0A00)  # +/-0.256V range  =  Gain 16
 
-_MODE_MASK = const(0x0100)
 _MODE_CONTIN = const(0x0000)  # Continuous conversion mode
 _MODE_SINGLE = const(0x0100)  # Power-down single-shot mode (default)
 
-_DR_MASK = const(0x00E0)  # Values ADS1015/ADS1115
 _DR_128SPS = const(0x0000)  # 128 /8 samples per second
 _DR_250SPS = const(0x0020)  # 250 /16 samples per second
 _DR_490SPS = const(0x0040)  # 490 /32 samples per second
@@ -66,22 +59,14 @@ _DR_2400SPS = const(0x00A0)  # 2400/250 samples per second
 _DR_3300SPS = const(0x00C0)  # 3300/475 samples per second
 _DR_860SPS = const(0x00E0)  # -   /860 samples per Second
 
-_CMODE_MASK = const(0x0010)
 _CMODE_TRAD = const(0x0000)  # Traditional comparator with hysteresis (default)
-_CMODE_WINDOW = const(0x0010)  # Window comparator
 
-_CPOL_MASK = const(0x0008)
 _CPOL_ACTVLOW = const(0x0000)  # ALERT/RDY pin is low when active (default)
-_CPOL_ACTVHI = const(0x0008)  # ALERT/RDY pin is high when active
 
-_CLAT_MASK = const(0x0004)  # Determines if ALERT/RDY pin latches once asserted
 _CLAT_NONLAT = const(0x0000)  # Non-latching comparator (default)
 _CLAT_LATCH = const(0x0004)  # Latching comparator
 
-_CQUE_MASK = const(0x0003)
 _CQUE_1CONV = const(0x0000)  # Assert ALERT/RDY after one conversions
-_CQUE_2CONV = const(0x0001)  # Assert ALERT/RDY after two conversions
-_CQUE_4CONV = const(0x0002)  # Assert ALERT/RDY after four conversions
 # Disable the comparator and put ALERT/RDY in high state (default)
 _CQUE_NONE = const(0x0003)
 

@@ -132,7 +132,7 @@ class DaylightSaving:
         return utc + (offset * 60)
 
     def ftime(self, t):
-        year, month, day, hour, minute, second, ms, dayinyear = utime.localtime(t)
+        year, month, day, hour, minute, second, _, _ = utime.localtime(t)
         return "{:4}-{:02}-{:02}T{:02}:{:02}:{:02}".format(
             year, month, day, hour, minute, second
         )
