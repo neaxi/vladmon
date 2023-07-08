@@ -8,6 +8,10 @@ def align_to(msg, limit=CNFG.LCD_MAX_CHAR):
     return f"{msg:<{limit}}"
 
 
+def align_to_center(msg, limit=CNFG.LCD_MAX_CHAR):
+    return f"{msg:^{limit}}"
+
+
 def newline():
     return align_to("")
 
@@ -36,10 +40,8 @@ def sht(data) -> str:
     return parse(msgs)
 
 
-def network_status() -> str:
+def network_status(sta_if) -> str:
     # get network and ntp data
-    sta_if = network.WLAN(network.STA_IF)
-
     msgs = []
     if not sta_if.isconnected():
         msgs.append("Status: Offline")
@@ -55,8 +57,8 @@ def network_status() -> str:
 
 
 def network_error(lcd, gfx):
-    """ clear top half of the display and show the banner there"""
-    gfx.fill_rect(0,0,128,32,0)
+    """clear top half of the display and show the banner there"""
+    gfx.fill_rect(0, 0, 128, 32, 0)
     lcd.show()
     lcd.longtext(CNFG.MSG_LCD["offline"], CNFG.LCD_MAX_CHAR, clear=False)
 
@@ -65,8 +67,8 @@ def soil_humidity(data):
     msgs = ["Soil humidity"]
     msgs.append(newline())
     for channel in range(CNFG.ADS_CHANNELS):
-        val = f"{data[channel]:.2f}"
-        msgs.append(f"{channel}: {val:>6} %")
+        val = f"{data[channel]}"
+        msgs.append(f"{channel}: {val:>8} %")
     return parse(msgs)
 
 
@@ -78,4 +80,13 @@ def relay_states(relay):
         state = "OFF" if pin.value() == 1 else "ON"
         name = name if len(name) < 10 else name[:10]
         msgs.append(f"{state:3} - {name}")
+    return parse(msgs)
+
+
+def autostart_aborted():
+    msgs = []
+    msgs.append(newline())
+    msgs.append(align_to_center("AUTOSTART"))
+    msgs.append(align_to_center("ABORTED"))
+    msgs.append(newline())
     return parse(msgs)

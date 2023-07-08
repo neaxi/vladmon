@@ -35,7 +35,7 @@ def meas_sht3x(sht) -> dict:
 
 def meas_bh1750(bh) -> float:
     try:
-        return bh.luminance(BH1750.ONCE_HIRES_1)
+        return int(bh.luminance(BH1750.ONCE_HIRES_1))
     except:
         logger.error("BH1750 - Failed to read luminance")
         return 0

@@ -13,8 +13,6 @@ import wifi_and_ntp
 
 from oled import GFX
 
-# from ina3221 import INA3221
-
 import config as CNFG
 import log_setup
 
@@ -80,10 +78,6 @@ def setup_ads(i2c):
     return ADS1115(i2c, CNFG.ADS_ADDR, CNFG.ADS_GAIN)
 
 
-def setup_ina3221(i2c):
-    return INA3221(i2c)
-
-
 def setup_lcd(i2c):
     lcd = SSD1306_I2C(CNFG.LCD_W, CNFG.LCD_H, i2c, 0x3C)
     lcd.fill(0)
@@ -142,7 +136,6 @@ DEV_I2C = [
     Periph("sht", setup_sht3x, "SHT3X"),
     Periph("lcd", setup_lcd, "SSD1306"),
     Periph("ads", setup_ads, "ADS1115"),
-    # Periph("ina", setup_ina3221, "INA3221"),
     Periph("bh1750", setup_bh1750, "BH1750"),
 ]
 
@@ -169,6 +162,7 @@ class Initializer:
         # try to init I2C
         # I2C is a key, no I2C = death
         try:
+            # create i2c interfaces and check what devices are visible
             self.devices["i2c"] = setup_i2c()
             self.devices["i2c_secondary"] = setup_i2c_secondary()
             i2c_dev = self.devices["i2c"].scan()
@@ -183,7 +177,7 @@ class Initializer:
             raise OSError("I2C not available")
         if not i2c_dev:
             logger.error(f"No I2C devices found")
-            raise OSError("I2C bus init failed")
+            # raise OSError("I2C bus init failed")
         return i2c_dev
 
     def init_all(self):
@@ -200,7 +194,9 @@ class Initializer:
                     bus = self.devices["i2c_secondary"]
                 self.devices[device.id] = self.init_periph(device, i2c=bus)
                 if device.id == "lcd":
-                    self.devices["gfx"] = setup_gfx(self.devices["lcd"])
+                    # if the device is not None, it happened before
+                    if self.devices["lcd"]:
+                        self.devices["gfx"] = setup_gfx(self.devices["lcd"])
             else:
                 self.devices[device.id] = None
                 logger.warn(
@@ -208,21 +204,27 @@ class Initializer:
                 )
             sleep(CNFG.T_BUS_DELAY)
 
-        for device in DEV:
-            self.devices[device.id] = self.init_periph(device)
-
-        for device in DEV_REL:
-            self.devices[device.id] = self.init_periph(device, self.devices["relay"])
+        # unified init for relay and other peripherals with single except catch
+        for device in DEV + DEV_REL:
+            try:
+                if device in DEV_REL:
+                    self.devices[device.id] = self.init_periph(
+                        device, self.devices["relay"]
+                    )
+                else:
+                    self.devices[device.id] = self.init_periph(device)
+            except OSError as e:
+                logger.error(f"Init failed for {device}. Details: {e}")
 
         # init wifi and ntp
         logger.debug("Connecting wifi")
         self.devices["wifi"] = wifi_and_ntp.WifiScifi()
         self.devices["wifi"].attempt_connection(lcd=self.devices["lcd"])
-
+        sleep(1)  # wait before NTP attempt
         self.devices["ntp"] = wifi_and_ntp.NtpSync()
         self.devices["ntp"].sync_ntp_time(self.devices["wifi"])
 
-        sleep(2)
+        sleep(1)
         del i2c_addr
         return self.devices
 

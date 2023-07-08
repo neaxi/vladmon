@@ -107,12 +107,7 @@ class BlApi:
         except MemoryError as exc:
             if "memory allocation failed" in str(exc):
                 logger.warn("Connection attempt failed to allocate memory")
-                prior_cleanup = gc.mem_free()
                 gc.collect()
-                logger.debug(
-                    f"Free RAM before: {prior_cleanup}. Current: {gc.mem_free()}"
-                )
-                del prior_cleanup
                 if not reattempt:
                     self.cloud_comm(payload, reattempt=True, push_data=push_data, **kw)
                 else:

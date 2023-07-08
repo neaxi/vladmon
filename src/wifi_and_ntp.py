@@ -12,13 +12,13 @@ import config as CNFG
 import log_setup
 
 logger = log_setup.getLogger("wifintp")
+ntptime.timeout = CNFG.HTTP_TIMEOUT
 
 
 class WifiScifi:
     def __init__(self):
         self.conn_attempts = 1
 
-        self.ap = None
         self.deactivate_ap()
         self.sta_if = None
 
@@ -28,7 +28,7 @@ class WifiScifi:
 
     def deactivate_ap(self):
         """make sure AP mode is off"""
-        if not self.ap:
+        if not hasattr(self, "ap"):
             self.ap_if = network.WLAN(network.AP_IF)
         if self.ap_if.active():
             self.ap_if.active(False)
@@ -54,9 +54,9 @@ class WifiScifi:
         # 1ms before config
         # https://github.com/micropython/micropython/issues/8792#issuecomment-1161447599
         # https://github.com/micropython/micropython/commit/d6bc34a13aa734d8b32e5768c021377ac4815029
-        time.sleep_us(100)
+        time.sleep_us(1000)
         self.sta_if.config(dhcp_hostname=CNFG.DHCP_HOSTNAME)
-        time.sleep_us(100)  # extra sleep before connecting
+        time.sleep_us(1000)  # extra sleep before connecting
 
         logger.debug("Connection attempt to WiFi SSID:", ssid)
         self.sta_if.connect(ssid, pwd)

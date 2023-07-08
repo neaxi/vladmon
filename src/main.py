@@ -18,13 +18,13 @@ from blynk import BlApi
 logger = log_setup.getLogger("main")
 
 gc.enable()  # to make sure auto garbage collect is ON
-gc.threshold(61000)  # if the app allocates more, trigger GC
+gc.threshold(60000)  # if the app allocates more, trigger GC
 
 
 def mem_cleanup():
     start = gc.mem_free()
-    free = gc.mem_free()
     gc.collect()
+    free = gc.mem_free()
     logger.debug(f"Freed {free - start} bytes of RAM. Current: {free}")
     del start, free
 
@@ -36,7 +36,7 @@ class Orchestrator:
         init = Initializer()
         self.hw = init.devices
         self.data = DS()
-        logger.info("Initing cloud connection")
+        logger.info("Initing cloud comm")
         self.cloud = BlApi()
 
     async def cr_measure(self):
@@ -47,7 +47,7 @@ class Orchestrator:
                 if len(self.hw["ds18"].scan()) > 0:
                     self.data.update_ds18(self.hw["ds18"])
                 else:
-                    logger.debug("No DS18 devices found. Skipping...")
+                    logger.warn("No DS18 devices found. Skipping...")
             # BH1750
             time.sleep(CNFG.T_BUS_DELAY)
             if self.hw["bh1750"]:
@@ -66,7 +66,7 @@ class Orchestrator:
     async def cr_lcd(self):
         while True:
             # prepare LCD frames; only if data are present
-            self.data.lcd_messages.append(lcd.network_status())
+            self.data.lcd_messages.append(lcd.network_status(self.hw["wifi"].sta_if))
             if self.data.ds18 and self.data.bh1750:
                 self.data.lcd_messages.append(
                     lcd.ds18_and_light(self.data.ds18, self.data.bh1750)
@@ -132,6 +132,7 @@ class Orchestrator:
                 ):
                     logger.info("Cloud turned the pump off")
                     self.hw[CNFG.R_ID_PUMP].off()
+                del avg
 
             # atm humidity check; on/off fan
             if self.data.sht:
@@ -152,12 +153,14 @@ class Orchestrator:
                     if start <= (current[3], current[4]) <= end:
                         light_on = True
                         break
-
+                del start, end
                 if light_on:
                     if not self.hw[CNFG.R_ID_LIGHT].enabled:
                         self.hw[CNFG.R_ID_LIGHT].on()
                 elif self.hw[CNFG.R_ID_LIGHT].enabled:
                     self.hw[CNFG.R_ID_LIGHT].off()
+            else:
+                logger.warn("NTP not synced, light setting not changed")
 
             await uasyncio.sleep(CNFG.T_RELAY)
 
@@ -165,14 +168,15 @@ class Orchestrator:
         while True:
             mem_cleanup()
             self.cloud.update_streams(self.hw, self.data)
-            mem_cleanup()
+
             if self.hw["wifi"].sta_if.isconnected():
-                self.cloud.fetch_pump_setting(self.hw)
                 # resync time if network works and it did not work before
                 if not self.hw["ntp"].synced:
                     self.hw["ntp"].sync_ntp_time(self.hw["wifi"])
+                self.cloud.fetch_pump_setting(self.hw)
             else:
                 logger.warn("Pump setting fetch not attempted.")
+            mem_cleanup()
             await uasyncio.sleep(CNFG.T_NETWORK_UPDATE)
 
     def start(self):
@@ -199,7 +203,9 @@ if __name__ == "__main__":
         autostart = Pin(CNFG.AUTOSTART, Pin.IN, Pin.PULL_UP)
         if autostart.value() == 0:
             logger.warn(f"Autostart pin (G{CNFG.AUTOSTART}) grounded. Start aborted...")
+            master.hw["lcd"].longtext(lcd.autostart_aborted(), CNFG.LCD_MAX_CHAR)
         else:
+            del autostart  # throw the object away, not needed anymore
             master.start()
 
     except KeyboardInterrupt:
