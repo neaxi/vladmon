@@ -2,7 +2,6 @@ import gc
 import lib.urequests as urequests
 import config as CNFG
 import log_setup
-import wifi_and_ntp
 
 
 logger = log_setup.getLogger("api")

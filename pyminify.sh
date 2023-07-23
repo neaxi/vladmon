@@ -36,5 +36,5 @@ minify () {
 minify "$PATH_DST/$PATH_SRC"
 
 # move the files up from the parent dir in the target dir
-mv "$PATH_DST/$PATH_SRC"/* "$PATH_DST"
-rmdir "$PATH_DST/$PATH_SRC"
+cp -rf "$PATH_DST/$PATH_SRC"/* "$PATH_DST"
+rm -rf "$PATH_DST/$PATH_SRC"

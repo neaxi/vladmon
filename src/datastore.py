@@ -46,7 +46,15 @@ def meas_ads1115(ads) -> list:
     for channel in range(CNFG.ADS_CHANNELS):
         try:
             meas = ads.read(channel1=channel)
-            out.append(int((meas / CNFG.ADS_MAX) * 100))
+            if meas < CNFG.SOIL_GROUNDED_INPUT_LEVEL or meas > CNFG.SOIL_MAX:
+                # anything below 100 is zero .. most likely grounded input
+                # or above MAX level as MAX = no water
+                out.append(0)
+            else:
+                # subtract the MIN value from measured to have a 0 reference
+                # compute % out of the measurement using the soil sensor range instead of the ADC range
+                # subtract the results from 100, because it's inverse: more water => lower voltage
+                out.append(100 - int(((meas - CNFG.SOIL_MIN) / CNFG.SOIL_RANGE) * 100))
             del meas
         except Exception as exc:
             logger.error(f"ADS1115 - failed to read channel {channel}. {exc}")
@@ -63,6 +71,7 @@ class Data:
         self.sht = {}
         self.bh1750 = 0
         self.ads = []
+        self.ads_avg = 0
 
     def lcd_store_frame(self, msg):
         self.lcd_messages.append(msg)
@@ -81,4 +90,15 @@ class Data:
 
     def update_ads(self, device):
         self.ads = meas_ads1115(device)
+        # compute average
+        soil_hum = None
+        if self.ads:
+            # if the data exist, filter out zeros (grounded pins)
+            soil_hum = [hum for hum in self.ads if hum >= 1]
+            if not soil_hum:
+                logger.warn(
+                    "No soil humidity data available to calculate average value"
+                )
+            else:
+                self.ads_avg = sum(soil_hum) / len(soil_hum)
         logger.debug(f"ADS1115 {self.ads}")

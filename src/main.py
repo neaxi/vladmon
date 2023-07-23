@@ -4,8 +4,6 @@ from machine import Pin, I2C, ADC, SPI
 
 import uasyncio
 
-import urequests
-
 import log_setup
 
 import config as CNFG
@@ -65,7 +63,7 @@ class Orchestrator:
 
     async def cr_lcd(self):
         while True:
-            # prepare LCD frames; only if data are present
+            # prepare LCD frames into buffer; only if data are present
             self.data.lcd_messages.append(lcd.network_status(self.hw["wifi"].sta_if))
             if self.data.ds18 and self.data.bh1750:
                 self.data.lcd_messages.append(
@@ -74,11 +72,11 @@ class Orchestrator:
             if self.data.sht:
                 self.data.lcd_messages.append(lcd.sht(self.data.sht))
             if self.data.ads:
-                self.data.lcd_messages.append(lcd.soil_humidity(self.data.ads))
+                self.data.lcd_messages.append(lcd.soil_humidity(self.data))
             if self.hw["relay"]:
                 self.data.lcd_messages.append(lcd.relay_states(self.hw["relay"]))
 
-            # show them one by one
+            # show them one by one while emptying the buffer
             while self.data.lcd_messages:
                 msg = self.data.lcd_messages.pop()
                 logger.debug(f"LCD msg: {msg}")
@@ -97,42 +95,37 @@ class Orchestrator:
     async def cr_relays(self):
         while True:
             # soil humidity check - on/off pump
-            if self.data.ads:
-                avg = sum(self.data.ads) / len(self.data.ads)
-                if avg < CNFG.TRG_SOIL:
-                    logger.info(
-                        f"Soil hum is below {CNFG.TRG_SOIL} % target ... {avg} %."
-                    )
-                    # if we are not turned on yet
-                    if not self.hw[CNFG.R_ID_PUMP].enabled:
-                        # if cloud settings allow us to be turned on
-                        if self.hw[CNFG.R_ID_PUMP].cloud_allow:
-                            # if we have enough water in the tank
-                            if not self.hw[CNFG.R_ID_PUMP].low_level():
-                                logger.info(f"Turning on pump.")
-                                self.hw[CNFG.R_ID_PUMP].on()
-                        else:
-                            logger.warn(
-                                "Pump not turned on, because cloud does not allow it."
-                            )
-                elif self.hw[CNFG.R_ID_PUMP].enabled:
-                    # turn off when humidity gets above trigger
-                    self.hw[CNFG.R_ID_PUMP].off()
-                # if the pump is running and level drops too low, turn off
-                if (
-                    self.hw[CNFG.R_ID_PUMP].low_level()
-                    and self.hw[CNFG.R_ID_PUMP].enabled
-                ):
-                    logger.warn(f"Water level became too low. Shutting pump")
-                    self.hw[CNFG.R_ID_PUMP].off()
-                # pump was running, but got turned off in the cloud
-                if (
-                    self.hw[CNFG.R_ID_PUMP].enabled
-                    and not self.hw[CNFG.R_ID_PUMP].cloud_allow
-                ):
-                    logger.info("Cloud turned the pump off")
-                    self.hw[CNFG.R_ID_PUMP].off()
-                del avg
+
+            if self.data.ads_avg < CNFG.TRG_SOIL:
+                logger.info(
+                    f"Soil hum is below {CNFG.TRG_SOIL} % target ... {self.data.ads_avg} %."
+                )
+                # if we are not turned on yet
+                if not self.hw[CNFG.R_ID_PUMP].enabled:
+                    # if cloud settings allow us to be turned on
+                    if self.hw[CNFG.R_ID_PUMP].cloud_allow:
+                        # if we have enough water in the tank
+                        if not self.hw[CNFG.R_ID_PUMP].low_level():
+                            logger.info(f"Turning on pump.")
+                            self.hw[CNFG.R_ID_PUMP].on()
+                    else:
+                        logger.warn(
+                            "Pump not turned on, because cloud does not allow it."
+                        )
+            elif self.hw[CNFG.R_ID_PUMP].enabled:
+                # turn off when humidity gets above trigger
+                self.hw[CNFG.R_ID_PUMP].off()
+            # if the pump is running and level drops too low, turn off
+            if self.hw[CNFG.R_ID_PUMP].low_level() and self.hw[CNFG.R_ID_PUMP].enabled:
+                logger.warn(f"Water level became too low. Shutting pump")
+                self.hw[CNFG.R_ID_PUMP].off()
+            # pump was running, but got turned off in the cloud
+            if (
+                self.hw[CNFG.R_ID_PUMP].enabled
+                and not self.hw[CNFG.R_ID_PUMP].cloud_allow
+            ):
+                logger.info("Cloud turned the pump off")
+                self.hw[CNFG.R_ID_PUMP].off()
 
             # atm humidity check; on/off fan
             if self.data.sht:

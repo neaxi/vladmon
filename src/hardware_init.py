@@ -221,6 +221,7 @@ class Initializer:
         self.devices["wifi"] = wifi_and_ntp.WifiScifi()
         self.devices["wifi"].attempt_connection(lcd=self.devices["lcd"])
         sleep(1)  # wait before NTP attempt
+
         self.devices["ntp"] = wifi_and_ntp.NtpSync()
         self.devices["ntp"].sync_ntp_time(self.devices["wifi"])
 

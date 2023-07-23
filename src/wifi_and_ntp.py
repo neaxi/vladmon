@@ -72,9 +72,12 @@ class WifiScifi:
                     lcd.longtext(msg, CNFG.LCD_MAX_CHAR)
                 time.sleep(1)
             else:
+                if lcd:
+                    # print connection success message to OLED
+                    msg = CNFG.MSG_LCD["conn"](ssid, CNFG.LCD_MAX_CHAR) + "Connected"
+                    lcd.longtext(msg, CNFG.LCD_MAX_CHAR)
                 break
         print()  # newline after the last progress print without it
-
         logger.info("Wifi connected:", self.sta_if.isconnected())
         logger.info("Wifi config:", self.sta_if.ifconfig())
 
@@ -86,6 +89,12 @@ class WifiScifi:
             return True
 
     def attempt_connection(self, ntw_list=CNFG.NETWORKS, lcd=None, reset=False):
+        if not ntw_list:
+            # no networks were defined, running offline
+            # don't attempt connection, don't autoreboot
+            logger.warn("Not attempting Wi-Fi. No networks configured.")
+            return
+
         for ssid, passwd in ntw_list.items():
             self.connect(ssid, passwd)
             self.check_wifi_connected(ssid, lcd)
@@ -115,9 +124,9 @@ class NtpSync:
     def sync_ntp_time(self, wifi):
         """In case we have active and connected wifi, sync RTC via NTP"""
         if not (wifi.sta_if.active()):
-            logger.error("Can't sync NTP. Wifi not active.")
+            logger.critical("Can't sync NTP. Wifi not active.")
         elif not (wifi.sta_if.isconnected()):
-            logger.error("Can't sync NTP. Wifi not connected.")
+            logger.critical("Can't sync NTP. Wifi not connected.")
         else:
             try:
 
