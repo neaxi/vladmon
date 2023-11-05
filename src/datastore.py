@@ -69,9 +69,33 @@ class Data:
         self.lcd_messages = []
         self.ds18 = {}
         self.sht = {}
+        self.sht_cond_buffer = [False] * CNFG.TRG_COUNT
+
         self.bh1750 = 0
+
         self.ads = []
         self.ads_avg = 0
+        self.ads_cond_buffer = [False] * CNFG.TRG_COUNT
+
+    def update_condition_buffer(self, buffer, value):
+        buffer.pop(0)
+        buffer.append(value)
+
+    def print_condition_buffer_state(self, name, buffer):
+        logger.debug(
+            "{} delay buffer: {}x True vs {}x False".format(
+                name, buffer.count(True), buffer.count(False)
+            )
+        )
+
+    def evaluate_condition_buffer(self, buffer):
+        # just check if the values in the buffer are all the same
+        if (
+            buffer.count(True) == CNFG.TRG_COUNT
+            or buffer.count(False) == CNFG.TRG_COUNT
+        ):
+            return True
+        return False
 
     def lcd_store_frame(self, msg):
         self.lcd_messages.append(msg)

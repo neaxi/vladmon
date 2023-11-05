@@ -1,7 +1,7 @@
 from array import array
 from micropython import const
 
-LOG_LEVEL = const(10)  # 10 = DEBUG; 20 = INFO
+LOG_LEVEL = const(20)  # 10 = DEBUG; 20 = INFO
 
 
 # ----------------------------------------
@@ -16,11 +16,13 @@ TRG_LIGHT = [
 ]
 
 # if soil humidity gets below X %, turn on the pump
-TRG_SOIL = const(30)
+TRG_SOIL = const(70)
 
 # if atmospheric RH get over X %, turn on the fan
 TRG_ATM = const(70)
 
+# defines how many intervals has the trigger condition be met before taking action
+TRG_COUNT = 6  # * T_MEAS = time interval in seconds
 
 # ----------------------------------------
 #                 WIFI / NETWORK
@@ -29,8 +31,7 @@ TIMEZONE_UTC_OFFSET = const(1)  #  1 = Central Europe / Prague
 
 # dictionary of SSID & passwords to which we attempt connection
 NETWORKS = {
-    "IoT": "***REMOVED***"
-    # "wifi": "wifi_password"
+    "wifi": "wifi_password"
     # "backup": "secondary_password"
 }
 

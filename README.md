@@ -60,6 +60,7 @@ Possibly most important user variables:
 - `TRG_LIGHT` - list of tuples with start and end time when light is supposed to turn on
 - `TRG_SOIL` - % threshold value for soil humidity when water pump relay turns on
 - `TRG_ATM` - % threshold value for atmospheric humidity when fan relay turns on
+- `TRG_COUNT` - specifies for how many intervals has to be the trigger condition met for the relay to flip
 - `BLYNK_TOKEN` - private API key for the Blynk.cloud
 - `NETWORKS` - dictionary of "SSID":"password" key-value pairs
 

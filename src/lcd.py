@@ -34,9 +34,9 @@ def sht(data) -> str:
     msgs = ["Atmsphr data"]
     msgs.append(newline())
     msgs.append(newline())
-    msgs.append(f"Temp: {data['cels']} C")
+    msgs.append(f"Temp: {data['cels']:.4} C")
     msgs.append(newline())
-    msgs.append(f"Humi: {data['hum']} %")
+    msgs.append(f"Humi: {data['hum']:.4} %")
     return parse(msgs)
 
 
@@ -66,10 +66,10 @@ def network_error(lcd, gfx):
 def soil_humidity(data):
     msgs = ["Soil humidity"]
     msgs.append(newline())
-    msgs.append(f"0: {data.ads[0]:<3}%   AVRGE:")
-    msgs.append(f"1: {data.ads[1]:<3}%   {data.ads_avg:<3} %")
-    msgs.append(f"2: {data.ads[2]:<3}%   TRIGG:")
-    msgs.append(f"3: {data.ads[3]:<3}%   {CNFG.TRG_SOIL:<3} %")
+    msgs.append(f"0: {data.ads[0]:>3}%   AVRGE:")
+    msgs.append(f"1: {data.ads[1]:>3}%   {data.ads_avg:>3} %")
+    msgs.append(f"2: {data.ads[2]:>3}%   TRIGG:")
+    msgs.append(f"3: {data.ads[3]:>3}%   {CNFG.TRG_SOIL:>3} %")
 
     # for channel in range(CNFG.ADS_CHANNELS):
     #     val = f"{data.ads[channel]}"
